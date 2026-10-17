@@ -1,0 +1,17 @@
+# Single source of truth for store policy.
+# The prose the agent reads (search_policy) is rendered FROM this file, and the
+# tools enforce the same numbers. Edit a value here and behaviour changes
+# everywhere, with no code or prompt edits. That is the "policy change" test.
+store_name: Northwind Goods
+
+return_window_days: 30          # change-of-mind returns, counted from delivery
+defective_window_days: 60       # defective or wrong item
+tier_bonus_days:                # extra days on every window, by loyalty tier
+  standard: 0
+  silver: 0
+  gold: 15
+
+auto_approve_refund_limit_cents: 10000   # above this a human must approve
+final_sale_categories: [clearance, gift_card, perishable]
+cancellable_statuses: [processing]
+address_change_statuses: [processing]

@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+data/*.db
+node_modules/
+dist/
+runs/
+*.egg-info/
+*.egg-info/
+*.egg-info/
+.DS_Store
+repopack-output.txt
