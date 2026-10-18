@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from resolvelab.agent import SupportAgent, tool_specs
-from resolvelab.models import ClaudeClient, ModelReply, ToolCall, ToolSpec
+from resolvelab.models import ClaudeClient, GeminiClient, ModelReply, ToolCall, ToolSpec
 
 AGENT_TOOLS = {
     "lookup_order", "check_refund_eligibility", "issue_refund", "cancel_order",
@@ -119,3 +119,46 @@ def test_claude_adapter_translates_both_directions():
     assert msgs[2]["content"][0] == {"type": "tool_result", "tool_use_id": "tu_1", "content": "{}"}
     assert reply.text == "Checking." and reply.tool_calls[0].id == "tu_2"
     assert (reply.input_tokens, reply.output_tokens) == (12, 7)
+
+
+def test_gemini_adapter_translates_both_directions():
+    captured = {}
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                candidates=[SimpleNamespace(content=SimpleNamespace(parts=[
+                    SimpleNamespace(
+                        text=None, thought=False, thought_signature=b"sig",
+                        function_call=SimpleNamespace(
+                            id=None, name="lookup_order",
+                            args={"order_id": "ORD-1001", "customer_email": "a@example.com"}),
+                    ),
+                ]))],
+                usage_metadata=SimpleNamespace(prompt_token_count=15, candidates_token_count=4),
+            )
+
+    model = GeminiClient(model="test-model", client=SimpleNamespace(models=FakeModels()))
+    history = [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "text": "",
+         "tool_calls": [ToolCall("c0", "search_policy", {"query": "returns"}, extra=b"sig0")]},
+        {"role": "tool", "results": [{"id": "c0", "name": "search_policy", "content": '{"ok": true}'}]},
+    ]
+    spec = ToolSpec("lookup_order", "Fetch an order", {"type": "object", "properties": {}})
+    reply = model.generate("be nice", history, [spec])
+
+    assert captured["model"] == "test-model"
+    contents = captured["contents"]
+    assert [c.role for c in contents] == ["user", "model", "user"]
+    assert contents[1].parts[0].function_call.name == "search_policy"
+    assert contents[1].parts[0].thought_signature == b"sig0"
+    assert contents[2].parts[0].function_response.name == "search_policy"
+    assert captured["config"].system_instruction == "be nice"
+    assert captured["config"].automatic_function_calling.disable is True
+
+    assert reply.tool_calls[0].name == "lookup_order"
+    assert reply.tool_calls[0].id == "call_0"
+    assert reply.tool_calls[0].extra == b"sig"
+    assert (reply.input_tokens, reply.output_tokens) == (15, 4)
