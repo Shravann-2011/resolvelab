@@ -72,7 +72,7 @@ class SupportService:
         self,
         conn: sqlite3.Connection,
         policy: Policy,
-        today: Callable[[], date] = date.today,
+         today: Callable[[], date],
     ) -> None:
         self._conn = conn
         self._policy = policy
