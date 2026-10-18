@@ -8,7 +8,5 @@ node_modules/
 dist/
 runs/
 *.egg-info/
-*.egg-info/
-*.egg-info/
 .DS_Store
 repopack-output.txt
