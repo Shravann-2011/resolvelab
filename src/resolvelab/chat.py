@@ -37,7 +37,13 @@ def build_model(provider: str) -> ModelClient:
         from .models import ClaudeClient
 
         return ClaudeClient()
-    raise SystemExit(f"Unknown provider {provider!r}. Available: claude")
+    if provider == "gemini":
+        if not os.getenv("GEMINI_API_KEY"):
+            raise SystemExit("GEMINI_API_KEY is not set. Put it in .env (see .env.example).")
+        from .models import GeminiClient
+
+        return GeminiClient()
+    raise SystemExit(f"Unknown provider {provider!r}. Available: claude, gemini")
 
 
 def main() -> None:
