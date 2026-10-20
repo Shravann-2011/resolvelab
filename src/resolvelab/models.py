@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 DEFAULT_CLAUDE_MODEL = "claude-sonnet-5-5"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
 
 @dataclass(frozen=True)
@@ -113,7 +114,7 @@ class ClaudeClient:
             else:
                 raise ValueError(f"unknown message role: {role!r}")
         return out
-    DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+    DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
 
 class GeminiClient:

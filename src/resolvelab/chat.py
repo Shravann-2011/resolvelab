@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from .models import ModelClient
 from .policy import Policy
 from .seed import seed
 from .service import SupportService
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def load_env_file(path: Path = ROOT / ".env") -> None:
