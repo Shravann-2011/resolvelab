@@ -162,3 +162,9 @@ def test_gemini_adapter_translates_both_directions():
     assert reply.tool_calls[0].id == "call_0"
     assert reply.tool_calls[0].extra == b"sig"
     assert (reply.input_tokens, reply.output_tokens) == (15, 4)
+
+
+def test_gemini_client_builds_with_default_model_name():
+    model = GeminiClient(client=SimpleNamespace())
+    assert model.model.startswith("gemini")
+    assert model.name == f"gemini:{model.model}"
