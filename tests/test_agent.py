@@ -168,3 +168,26 @@ def test_gemini_client_builds_with_default_model_name():
     model = GeminiClient(client=SimpleNamespace())
     assert model.model.startswith("gemini")
     assert model.name == f"gemini:{model.model}"
+
+def test_gemini_retries_transient_errors(monkeypatch):
+    import resolvelab.models as models
+
+    monkeypatch.setattr(models.time, "sleep", lambda s: None)
+    calls = {"n": 0}
+
+    class FlakyModels:
+        def generate_content(self, **kwargs):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise RuntimeError("429 RESOURCE_EXHAUSTED. Please retry in 1s")
+            return SimpleNamespace(
+                candidates=[SimpleNamespace(content=SimpleNamespace(parts=[
+                    SimpleNamespace(text="hi", thought=False, thought_signature=None, function_call=None)
+                ]))],
+                usage_metadata=None,
+            )
+
+    model = GeminiClient(model="m", client=SimpleNamespace(models=FlakyModels()))
+    spec = ToolSpec("t", "d", {"type": "object", "properties": {}})
+    reply = model.generate("sys", [{"role": "user", "content": "x"}], [spec])
+    assert reply.text == "hi" and calls["n"] == 3

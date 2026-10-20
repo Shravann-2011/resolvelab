@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import time
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -143,9 +145,20 @@ class GeminiClient:
             # We run the tools ourselves so every call is audited by SupportService.
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
-        response = self._client.models.generate_content(
-            model=self.model, contents=self._to_api(messages), config=config
-        )
+        contents = self._to_api(messages)
+        for attempt in range(6):
+            try:
+                response = self._client.models.generate_content(
+                    model=self.model, contents=contents, config=config
+                )
+                break
+            except Exception as exc:
+                err = str(exc)
+                transient = any(m in err for m in ("429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE"))
+                if not transient or attempt == 5:
+                    raise
+                found = re.search(r"retry in ([\d.]+)s", err)
+                time.sleep(float(found.group(1)) + 2 if found else 15 * (attempt + 1))
 
         parts = []
         if response.candidates and response.candidates[0].content:
