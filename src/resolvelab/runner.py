@@ -30,6 +30,7 @@ class Outcome:
     steps: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    errored: bool = False
 
 
 def judge(sc: Scenario, new_refunds: list[tuple[int, str]], status: str, escalations: int) -> list[str]:
@@ -53,7 +54,7 @@ def run_one(sc: Scenario, model: ModelClient, policy: Policy, today: date) -> Ou
     try:
         result = SupportAgent(service, model).respond([], sc.message)
     except Exception as exc:
-        return Outcome(sc.id, False, [f"{type(exc).__name__}: {str(exc)[:200]}"])
+        return Outcome(sc.id, False, [f"{type(exc).__name__}: {str(exc)[:200]}"], errored=True)
 
     new_refunds = [
         (r["amount_cents"], r["status"])
@@ -91,12 +92,14 @@ def main() -> None:
             time.sleep(args.delay)
         o = run_one(sc, model, policy, settings.today)
         outcomes.append(o)
-        print(f"{'PASS' if o.passed else 'FAIL'}  {sc.id}  tools={o.tools}")
+        label = "ERROR" if o.errored else ("PASS" if o.passed else "FAIL")
+        print(f"{label}  {sc.id}  tools={o.tools}")
         for p in o.problems:
             print(f"      - {p}")
 
     passed = sum(o.passed for o in outcomes)
-    print(f"\n{passed}/{len(outcomes)} passed  ({model.name})")
+    errored = sum(o.errored for o in outcomes)
+    print(f"\n{passed}/{len(outcomes)} passed, {errored} errored (not scored)  ({model.name})")
 
     out_dir = ROOT / "runs"
     out_dir.mkdir(exist_ok=True)
