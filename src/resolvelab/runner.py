@@ -16,6 +16,7 @@ from .db import connect, init_db
 from .models import ModelClient
 from .policy import Policy
 from .adversarial import ADVERSARIAL
+from .cache import CachedModel
 from .scenarios import SCENARIOS, Scenario
 from .seed import seed
 from .service import SupportService
@@ -81,11 +82,14 @@ def main() -> None:
     parser.add_argument("--only", default="", help="run only scenarios whose id contains this text")
     parser.add_argument("--delay", type=float, default=0, help="seconds to wait between scenarios")
     parser.add_argument("--adversarial", action="store_true", help="run the adversarial scenarios instead")
+    parser.add_argument("--cache", action="store_true", help="replay saved model replies; only new conversations cost quota")
     args = parser.parse_args()
 
     settings = load_settings()
     policy = Policy.from_yaml(settings.policy_path)
     model = build_model(args.provider)
+    if args.cache:
+        model = CachedModel(model, ROOT / "runs" / "cache")
     pool = ADVERSARIAL if args.adversarial else SCENARIOS
     chosen = [s for s in pool if args.only in s.id]
 
