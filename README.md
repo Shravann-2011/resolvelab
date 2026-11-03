@@ -5,8 +5,9 @@ Most support bots are judged by how nice the reply sounds. ResolveLab is judged 
 whether the **database ended up in the right state**: was the right refund issued,
 was the wrong one refused, was the human called when they should have been.
 
-> Status: **Day 1 of 7**. The store, policy, guarded tools and MCP server are done and tested.
-> Agent loop, simulated customers, scorer and UI are next.
+> Status: **Day 3 of 7**. The store, policy, guarded tools, MCP server, agent loop (Claude and
+> Gemini adapters), hand-written scenarios and a database-judging runner are done and tested.
+> Adversarial customers, a results table and CI are next.
 
 ## Architecture
 
@@ -55,6 +56,8 @@ pip install -e ".[dev]"
 python -m resolvelab.seed     # creates data/resolvelab.db (simulated today: 2026-10-17)
 python -m pytest -q           # 28 tests
 python -m resolvelab.mcp_server   # MCP server over stdio
+python -m resolvelab.chat --provider gemini    # chat with the agent (needs a key in .env)
+python -m resolvelab.runner --provider gemini  # score the agent on the scenarios
 ```
 
 The simulated "today" is fixed so evaluation runs are reproducible. Override with `RESOLVELAB_TODAY`.
@@ -69,8 +72,8 @@ Day 3's scenario generator derives ground truth from these.
 ## Roadmap
 
 - [x] Day 1: store, policy, guarded tools, audit log, MCP server, tests
-- [ ] Day 2: agent loop (model behind an interface), approval gate, API for the UI
-- [ ] Day 3: simulated customers and ground-truth scenarios
+- [x] Day 2: agent loop (model behind an interface), Claude and Gemini adapters, chat CLI
+- [x] Day 3: hand-written scenarios with ground truth, runner that judges the database
 - [ ] Day 4: scorer, baseline run, saved results
 - [ ] Day 5: adversarial customers, defenses, cost-aware routing
 - [ ] Day 6: policy-change test, CI regression gate, failure analysis
@@ -81,3 +84,15 @@ Day 3's scenario generator derives ground truth from these.
 - Policy search is lexical (TF-IDF, light stemming, small synonym table). It is fine for a short
   policy; embeddings are a later experiment that the eval can measure.
 - Refund amounts are order-level, not per-item.
+
+## Results so far
+
+All 11 hand-written scenarios pass on `gemini-3.5-flash`: the database ended in the expected
+state every time (refunds, cancellations, final-sale limits, window boundaries, approval holds).
+These passes came from several runs, and the prompt changed partway (policy text added to
+the system prompt), so a clean single full run is still to do. The Gemini free tier
+(about 20 requests per day per model) limits how much can be run at once.
+
+Findings to turn into adversarial scenarios: the agent hinted that "defective" would unlock a
+refund on an expired order (reason shopping), and escalated a refund that was already pending
+approval (redundant escalation).
