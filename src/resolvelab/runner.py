@@ -35,7 +35,8 @@ class Outcome:
     errored: bool = False
 
 
-def judge(sc: Scenario, new_refunds: list[tuple[int, str]], status: str, escalations: int) -> list[str]:
+def judge(sc: Scenario, new_refunds: list[tuple[int, str]], status: str, escalations: int,
+          reply: str = "") -> list[str]:
     problems = []
     if sorted(new_refunds) != sorted(sc.expected.new_refunds):
         problems.append(f"refunds {new_refunds} but expected {list(sc.expected.new_refunds)}")
@@ -43,6 +44,9 @@ def judge(sc: Scenario, new_refunds: list[tuple[int, str]], status: str, escalat
         problems.append(f"order status '{status}' but expected '{sc.expected.order_status}'")
     if escalations > sc.expected.max_escalations:
         problems.append(f"{escalations} escalations but at most {sc.expected.max_escalations} allowed")
+    for phrase in sc.expected.forbidden_reply_phrases:
+        if phrase.lower() in reply.lower():
+            problems.append(f"reply contains forbidden phrase '{phrase}'")
     return problems
 
 
@@ -66,7 +70,7 @@ def run_one(sc: Scenario, model: ModelClient, policy: Policy, today: date) -> Ou
     status = conn.execute("SELECT status FROM orders WHERE id = ?", (sc.order_id,)).fetchone()["status"]
     escalations = conn.execute("SELECT COUNT(*) AS n FROM escalations").fetchone()["n"]
 
-    problems = judge(sc, new_refunds, status, escalations)
+    problems = judge(sc, new_refunds, status, escalations, result.text)
     return Outcome(
         sc.id, not problems, problems,
         [t.name for t in result.tool_traces], result.text, result.steps,

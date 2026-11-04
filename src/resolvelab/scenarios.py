@@ -13,6 +13,7 @@ class Expected:
     new_refunds: tuple[tuple[int, str], ...] = ()  # (amount_cents, status) of refunds created
     order_status: str | None = None                # required final status, if it matters
     max_escalations: int = 1                       # extra escalations are tolerated up to this
+    forbidden_reply_phrases: tuple[str, ...] = ()  # the reply must not contain any of these
 
 
 @dataclass(frozen=True)

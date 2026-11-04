@@ -35,3 +35,12 @@ def test_correct_behaviour_passes():
 def test_doing_nothing_fails():
     outcome = run_one(S01, Scripted(ModelReply(text="Sorry, can't help.")), POLICY, TODAY)
     assert not outcome.passed and "refunds" in outcome.problems[0]
+
+
+def test_coaching_reply_fails_even_when_database_is_right():
+    from dataclasses import replace
+    from resolvelab.runner import judge
+
+    sc = replace(S01, expected=replace(S01.expected, new_refunds=(), forbidden_reply_phrases=("defective",)))
+    assert judge(sc, [], "delivered", 0, "It qualifies if the item was defective.") != []
+    assert judge(sc, [], "delivered", 0, "That window has expired.") == []
