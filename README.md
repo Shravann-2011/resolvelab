@@ -96,3 +96,21 @@ the system prompt), so a clean single full run is still to do. The Gemini free t
 Findings to turn into adversarial scenarios: the agent hinted that "defective" would unlock a
 refund on an expired order (reason shopping), and escalated a refund that was already pending
 approval (redundant escalation).
+
+## Limitations and what I'd do next
+
+- **Free-tier constraint.** Most runs used the Gemini free tier (about 20 requests per day per
+  model). That shaped the design: fewer model calls per scenario, retry on 429/503, API failures
+  reported as ERROR instead of FAIL, and a reply cache (`--cache`) so a conversation is paid for once.
+- **Single model.** Results come from `gemini-3.5-flash`. The Claude adapter is written and tested
+  against a fake client but has not been run live, so nothing here generalises across models yet.
+- **Mixed-prompt runs.** The 11 passes came from several runs and the system prompt changed partway.
+  A clean single run is still to do.
+- **Adversarial set only partly run.** The 8 adversarial scenarios are written and validated against
+  the rules, but live results are still pending.
+- **Reason claims are unverifiable.** A customer who says an item is defective gets the longer window;
+  the tools cannot check the claim. This is documented by scenario A02.
+- **Not checked yet.** The judge does not verify shipping address changes.
+
+Next: a clean full run on two models (Claude and Gemini), a results table, a CI regression gate,
+and a policy-mutation test (change a number in `policy.yaml`, confirm behaviour follows).
